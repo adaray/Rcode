@@ -9,9 +9,10 @@ library(ggplot2)
 library(ggthemes)
 library(neuralnet)
 library(fpp2)
+library(reshape2)
 
 getwd()
-setwd("/Users/Daray/Google Drive/New Collection/cvaa12/CVP318/R code")
+setwd("C:/Users/Daray/Google Drive (a.ahmed.daray@gmail.com)/New Collection/cvaa12/CVP318/R code")
 
 ############################## TEMPERATURE DATA
 
@@ -76,14 +77,15 @@ nn <- neuralnet(f_scaled, data = train_scaled, linear.output = TRUE)
 nn_predicted <- compute(nn, test_scaled[,-1])
 final_pred <- nn_predicted$net.result * (max(df$Tin) - min(df$Tin))+min(df$Tin)
 actual <- test_scaled[,1] *  (max(df$Tin) - min(df$Tin))+min(df$Tin)
-result <- data.frame(final_pred, actual)
+test$Tin_pred <- as.numeric(round(final_pred,2))
+result <- data.frame(test[,c(1,2,18)])
 
 MAE = mean(abs(final_pred-actual))
 MAXAE = max(abs(final_pred-actual))
 MSE = mean((final_pred - actual)^2)
 RMSE = MSE^0.5
 
-nn_results <- c(MAE, MAXAE, MSE, RMSE) 
+nn_results <- c(MAE, MAXAE, MSE, RMSE)
 
 head(result)
 
@@ -91,9 +93,13 @@ png('nn_scatterplot.png')
 ggplot(result, aes(x=actual, y=final_pred)) + geom_point() + stat_smooth() + 
   xlab('Actual') + ylab('NN_Predicted') + ggtitle('NEURAL NETWORK')
 dev.off()
-autoplot(cbind(final_pred, actual))
-plot(nn)
+png('nn_.png')
+ggplot(result, aes(x=DateTime, y=result)) + geom_line() + xlab('Actual') + ylab('NN_Predicted') + ggtitle('NEURAL NETWORK')
+autoplot(ts(cbind(final_pred, actual, Facet=T)))
+#plot(nn)
 
+meltresult <- melt(result,id="DateTime")
+ggplot(meltresult,aes(x=DateTime,y=value,colour=variable,group=variable)) + geom_line()
 
 
 #LINEAR REGRESSION
@@ -188,64 +194,6 @@ plot(nn)
 summary(nn)
 str(nn_predicted)
 head(test[,1])
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-######################BOSTON
-head(Boston)
-dataset <- Boston
-
-#Normalise Data
-normalise <- function(x){(x-min(x))/(max(x)-min(x))}
-scaled_data = apply(dataset, 2, normalise)
-class(scaled_data)
-scaled_data <- as.data.frame(scaled_data)
-
-
-#Split data
-split <- sample.split(scaled_data$medv, SplitRatio = 0.7)
-train <- subset(scaled_data, split= TRUE)
-test <- subset(scaled_data, split=FALSE)
-
-#Train the model
-library(neuralnet)
-n <- colnames(train)
-f <- as.formula(paste("medv ~ ", paste(n[!n %in% "medv"], collapse= " + ")))
-model <- neuralnet(f, data = train, hidden = c(5,3), linear.output = TRUE)
-predict <- compute(model,test[,1:13])
-str(predict)
-
-#Inverse normalisation
-final_pred <- predict$net.result * (max(dataset$medv) - min(dataset$medv))+min(dataset$medv)
-actual <- test[,14] *  (max(dataset$medv) - min(dataset$medv))+min(dataset$medv)
-result <- data.frame(final_pred, actual)
-mean(abs(final_pred-actual))
-MSE = sum((final_pred- actual)^2)/nrow(test)
-MSE
-head(result)
-ggplot(result, aes(x=actual, y=final_pred)) + geom_point() + stat_smooth()
-
-train_versed = train[,'age'] * (max(dataset$age) - min(dataset$age))+min(dataset$age)
-cbind(train_versed, dataset$age)
-
-
-
-
-
-
-
 
 
 
